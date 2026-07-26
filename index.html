@@ -1,11 +1,658 @@
 <!DOCTYPE html>
- <html lang="zh-CN">
- <head>
- <meta charset="UTF-8">
- <title>宝宝学英语 🌈</title>
- </head>
- <body>
- <h1>✅ 页面加载成功</h1>
- <p>文字正常显示代表网站部署没问题，原来代码存在bug</p>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>宝宝单词记忆</title>
+<style>
+:root{
+  --main:#ff789c;
+  --light:#ffe6ee;
+  --text:#333;
+  --gray:#999;
+  --ok:#36c667;
+  --err:#f25c5c;
+}
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system}
+body{background:#fff;color:var(--text);min-height:100vh;padding-bottom:80px;}
+.page{display:none;padding:16px;max-width:600px;margin:0 auto;}
+.page.active{display:block;}
+
+/*底部导航*/
+.bottom-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  display:flex;background:#fff;border-top:1px solid #eee;
+  max-width:600px;margin:0 auto;
+}
+.nav-item{
+  flex:1;text-align:center;padding:10px 4px;cursor:pointer;font-size:13px;
+}
+.nav-item.active{color:var(--main);}
+.nav-item .icon{font-size:20px;display:block;margin-bottom:4px;}
+
+/*首页卡片*/
+.home-card{
+  background:var(--light);border-radius:16px;padding:20px;margin:12px 0;
+}
+.home-row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.home-btn{
+  flex:1;min-width:120px;text-align:center;padding:16px 8px;border-radius:14px;
+  background:#fff;border:1px solid #f0d8e2;cursor:pointer;
+}
+.home-btn .icon{font-size:26px;margin-bottom:6px;display:block;}
+
+/*学习卡片*/
+.learn-card{
+  background:#fff;border-radius:18px;padding:30px 20px;box-shadow:0 4px 12px #00000010;margin-top:20px;
+  text-align:center;
+}
+.emoji-big{font-size:60px;margin-bottom:12px;}
+.learn-en{font-size:32px;font-weight:bold;margin:8px 0;}
+.learn-cn{font-size:20px;color:#555;margin-bottom:20px;}
+.learn-buttons{display:flex;gap:10px;margin-top:24px;}
+.learn-buttons button{flex:1;padding:14px;border-radius:12px;border:none;font-size:16px;cursor:pointer;}
+.btn-prev{background:#eee;}
+.btn-next{background:var(--main);color:#fff;}
+
+/*复习选项*/
+.review-options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px;}
+.review-option{
+  padding:14px 8px;border-radius:12px;border:1px solid #ddd;text-align:center;cursor:pointer;
+}
+.review-option.correct{border-color:var(--ok);background:#e6f9ee;}
+.review-option.wrong{border-color:var(--err);background:#ffe9e9;}
+
+/*日历*/
+.calendar-header{display:flex;align-items:center;justify-content:space-between;margin:10px 0;}
+.cal-nav-btn{border:none;background:#eee;width:36px;height:36px;border-radius:50%;cursor:pointer;}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-weekday{text-align:center;padding:6px;font-size:13px;color:#777;}
+.cal-day{aspect-ratio:1;text-align:center;line-height:36px;border-radius:8px;background:#f7f7f7;}
+.cal-day.today{background:#ffe0eb;}
+.cal-day.checked{background:var(--main);color:#fff;}
+.cal-day.empty{background:transparent;}
+
+/*单词库*/
+.library-tabs{display:flex;gap:6px;overflow-x:auto;padding:6px 0;}
+.library-tab{white-space:nowrap;padding:6px 10px;border-radius:8px;border:1px solid #ddd;background:#fff;cursor:pointer;}
+.library-tab.active{background:var(--main);color:#fff;border-color:var(--main);}
+#libraryGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+.library-item{
+  border:1px solid #eee;border-radius:12px;padding:12px;cursor:pointer;
+}
+.library-item .en{font-weight:bold;margin:4px 0;}
+.status{font-size:12px;padding:2px 6px;border-radius:4px;display:inline-block;}
+.status.new{background:#eee;color:#666;}
+.status.learning{background:#fff2cc;color:#b38600;}
+.status.mastered{background:#e6f9ee;color:#208c4a;}
+
+/*弹窗toast*/
+#modalOverlay{
+  position:fixed;inset:0;background:#00000050;display:none;align-items:center;justify-content:center;
+  z-index:999;padding:20px;
+}
+#modalOverlay.show{display:flex;}
+#modalContent{
+  background:#fff;border-radius:16px;padding:24px;width:100%;max-width:340px;text-align:center;
+}
+.modal-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--main);color:#fff;font-size:16px;cursor:pointer;margin-top:12px;}
+#toast{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:120px;background:#333;color:#fff;padding:10px 18px;border-radius:20px;
+  opacity:0;transition:0.2s;z-index:999;
+}
+#toast.show{opacity:1;}
+
+/*星星动画*/
+.star-burst{
+  position:fixed;pointer-events:none;font-size:28px;z-index:990;
+  animation:starAnim 1s forwards;
+}
+@keyframes starAnim{
+  0%{opacity:0;transform:translateY(20px) scale(0.5);}
+  20%{opacity:1;transform:translateY(0) scale(1);}
+  100%{opacity:0;transform:translateY(-60px) scale(1.2);}
+}
+.learn-complete{text-align:center;padding:30px 10px;}
+.complete-emoji{font-size:64px;margin-bottom:10px;}
+.big-btn{
+  width:80%;padding:14px;border-radius:12px;border:none;background:var(--main);color:#fff;font-size:16px;cursor:pointer;margin-top:20px;
+}
+.category-card{
+  border:1px solid #ddd;border-radius:10px;padding:10px;text-align:center;cursor:pointer;
+}
+.category-card.selected{border-color:var(--main);background:var(--light);}
+</style>
+</head>
+<body>
+
+<!--页面容器-->
+<div id="pageHome" class="page active">
+  <h2>🏠 单词学习首页</h2>
+  <div class="home-card">
+    <p>连续打卡：<span id="currentStreak">0</span> 天</p>
+    <p>累计打卡：<span id="totalDays">0</span> 天</p>
+    <p>已学习单词：<span id="totalWords">0</span> 个</p>
+    <div class="home-row">
+      <div class="home-btn" onclick="goLearn()">
+        <span class="icon">📖</span>学习新单词
+      </div>
+      <div class="home-btn" onclick="goReview()">
+        <span class="icon">🔁</span>开始复习
+      </div>
+      <div class="home-btn" onclick="checkIn()">
+        <span class="icon">✅</span>今日打卡
+      </div>
+    </div>
+  </div>
+  <div class="home-card">
+    <h3>📅 打卡日历</h3>
+    <div id="calendarBox"></div>
+  </div>
+</div>
+
+<div id="pageLearn" class="page">
+  <h2>📖 学习单词</h2>
+  <div id="learnContent" class="learn-card"></div>
+</div>
+
+<div id="pageReview" class="page">
+  <h2>🔁 复习闯关</h2>
+  <div id="reviewContent"></div>
+</div>
+
+<div id="pageLibrary" class="page">
+  <h2>📚 单词词库</h2>
+  <div id="libraryTabs" class="library-tabs"></div>
+  <div id="libraryGrid"></div>
+</div>
+
+<div id="pageSetting" class="page">
+  <h2>⚙️ 设置</h2>
+  <div class="home-card">
+    <p>每日学习目标：<span id="dailyGoalDisplay">5</span> 个</p>
+    <input type="range" min="3" max="20" value="5" id="dailyGoalSlider" style="width:100%">
+    <h4 style="margin-top:16px;">选择学习分类</h4>
+    <div id="categorySelect" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;"></div>
+  </div>
+  <div class="home-card">
+    <h4>学习统计</h4>
+    <p>已学：<span id="statLearned">0</span></p>
+    <p>已掌握：<span id="statMastered">0</span></p>
+    <p>词库总数：<span id="statTotal">0</span></p>
+    <p>预计学完剩余：<span id="statEstimate">0</span>天</p>
+  </div>
+  <div class="home-card">
+    <button onclick="resetData()" style="width:100%;padding:12px;background:#dd4444;color:#fff;border:none;border-radius:10px;margin-top:8px;">重置所有学习数据</button>
+  </div>
+</div>
+
+<!--底部导航-->
+<div class="bottom-nav">
+  <div class="nav-item active" onclick="showPage('home')">
+    <span class="icon">🏠</span>首页
+  </div>
+  <div class="nav-item" onclick="showPage('library')">
+    <span class="icon">📚</span>词库
+  </div>
+  <div class="nav-item" onclick="showPage('setting')">
+    <span class="icon">⚙️</span>设置
+  </div>
+</div>
+
+<!--弹窗&提示-->
+<div id="modalOverlay">
+  <div id="modalContent"></div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ========== 单词库 自行增删单词 ==========
+const CATEGORIES = [
+  {key:"animal",name:"动物",emoji:"🐾"},
+  {key:"food",name:"食物",emoji:"🍎"},
+  {key:"daily",name:"日常物品",emoji:"🏠"}
+];
+const WORDS = [
+  {en:"cat",cn:"小猫",emoji:"🐱",cat:"animal"},
+  {en:"dog",cn:"小狗",emoji:"🐶",cat:"animal"},
+  {en:"bird",cn:"小鸟",emoji:"🐦",cat:"animal"},
+  {en:"apple",cn:"苹果",emoji:"🍎",cat:"food"},
+  {en:"banana",cn:"香蕉",emoji:"🍌",cat:"food"},
+  {en:"milk",cn:"牛奶",emoji:"🥛",cat:"food"},
+  {en:"chair",cn:"椅子",emoji:"🪑",cat:"daily"},
+  {en:"table",cn:"桌子",emoji:"🪴",cat:"daily"},
+  {en:"book",cn:"书本",emoji:"📖",cat:"daily"}
+];
+
+// 默认本地存储数据
+function getDefaultData(){
+  return {
+    dailyGoal:5,
+    speakSpeed:0.8,
+    selectedCats:["animal","food","daily"],
+    wordRecords:{},
+    todayLearned:[],
+    checkin:{},
+    streak:0,
+    lastCheckinDate:""
+  }
+}
+
+// 本地存储读写
+let data;
+function loadData(){
+  const str = localStorage.getItem("wordMemData");
+  if(str){
+    data = JSON.parse(str);
+  }else{
+    data = getDefaultData();
+  }
+}
+function saveData(){
+  localStorage.setItem("wordMemData",JSON.stringify(data));
+}
+
+// 获取今日日期字符串 YYYY-MM-DD
+function todayStr(){
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,"0");
+  const day = String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+// 每日重置：跨天清空今日学习列表
+function checkDailyReset(){
+  const today = todayStr();
+  if(!data.todayDate || data.todayDate !== today){
+    data.todayLearned = [];
+    data.todayDate = today;
+    saveData();
+  }
+}
+
+//页面切换
+function showPage(name){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById("page"+name.charAt(0).toUpperCase()+name.slice(1)).classList.add("active");
+  //导航高亮
+  document.querySelectorAll(".nav-item").forEach(item=>item.classList.remove("active"));
+  event?.target?.closest(".nav-item")?.classList.add("active");
+
+  if(name === "home") renderHome();
+  if(name === "library") renderLibrary();
+  if(name === "setting") renderPlan();
+}
+
+function renderHome(){
+  renderCalendar();
+}
+
+//语音朗读
+function speak(text,callback){
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
+  utter.rate = data.speakSpeed;
+  if(callback) utter.onend = callback;
+  speechSynthesis.speak(utter);
+}
+
+//学习模块
+let learnList = [];
+let learnIndex = 0;
+function goLearn(){
+  //筛选选中分类、未学习的单词
+  learnList = WORDS.filter(w=>{
+    if(!data.selectedCats.includes(w.cat)) return false;
+    return !data.wordRecords[w.en] && !data.todayLearned.includes(w.en);
+  });
+  if(learnList.length === 0){
+    showModal("📢","暂时没有新单词","要么全部学完，要么今天已经学满，可以去复习！","知道了");
+    return;
+  }
+  learnIndex = 0;
+  showPage("learn");
+  renderLearnCard();
+}
+function ren
+ if(!data.todayLearned.includes(word.en)){
+     data.todayLearned.push(word.en);
+   }
+   if(!data.wordRecords[word.en]){
+     data.wordRecords[word.en] = {
+       status: 'learning',
+       learnDate: Date.now(),
+       reviewCount: 0,
+       nextReview: Date.now() + 86400000
+     }
+   }
+   saveData();
+   learnIndex++;
+   renderLearnCard();
+ }
+ function prevLearn(){
+   if(learnIndex > 0){
+    if(learnIndex > 0){
+     learnIndex--;
+     renderLearnCard();
+   }
+ }
+ function nextLearn(){
+   learnIndex++;
+   renderLearnCard();
+ }
+ //复习模块
+ let reviewQueue = [];
+ let reviewIndex = 0;
+ function goReview(){
+   const needReview = WORDS.filter(w=>{
+     const rec = data.wordRecords[w.en];
+     if(!rec) return false;
+     return rec.status !== 'mastered' && Date.now() >= rec.nextReview;
+   });
+   if(needReview.length === 0){
+     showModal('✅','暂无需要复习单词','太棒啦，暂时没有待复习内容，可以学习新单词！','知道了');
+     return;
+   }
+   reviewQueue = shuffleArr([...needReview]);
+   reviewIndex = 0;
+   showPage('review');
+   renderReviewCard();
+ }
+ function renderReviewCard(){
+   const container = document.getElementById('reviewContent');
+   if(reviewIndex >= reviewQueue.length){
+     container.innerHTML = `
+     <div class="learn-complete">
+       <div class="complete-emoji">🎉</div>
+       <div class="complete-emoji">🎉</div>
+       <div class="complete-title">复习完成！</div>
+       <div class="complete-sub">今日复习任务结束</div>
+       <button class="big-btn btn-learn" onclick="showPage('home')">
+         <span class="icon">🏠</span><span class="label">返回首页</span>
+       </button>
+     </div>`;
+     for(let i=0;i<6;i++) setTimeout(()=>createStar(),i*200);
+     return;
+   }
+   const word = reviewQueue[reviewIndex];
+   const allOpts = shuffleArr(WORDS);
+   let options = [word];
+   for(let w of allOpts){
+     if(w.en !== word.en && options.length <4){
+       options.push(w);
+     }
+   }
+   options = shuffleArr(options);
+   let htmlOpt = '';
+   options.forEach(opt=>{
+     htmlOpt += `<div class="review-option" onclick="checkAnswer('${opt.en}','${word.en}',this)">${opt.en} ${opt.emoji}</div>`
+   })
+   container.innerHTML = `
+     <div class="review-card">
+       <div class="review-emoji" style="text-align:center;font-size:42px;margin-bottom:8px;">${word.emoji}</div>
+       <div class="review-question" style="text-align:center;color:#777;">请选出这个单词</div>
+       <h2 style="font-size:26px;margin-bottom:12px;text-align:center">${word.cn}</h2>
+       <div class="review-options">${htmlOpt}</div>
+     </div>
+     <div style="text-align:center;margin-top:16px;">
+       <span>${reviewIndex+1}/${reviewQueue.length}</span>
+     </div>
+   `;
+ }
+ function checkAnswer(selectEn,rightEn,dom){
+   const allOpt = document.querySelectorAll('.review-option');
+   const rightWord = WORDS.find(w=>w.en===rightEn);
+   allOpt.forEach(item=>{
+     if(item.textContent.includes(rightWord.en)){
+       item.classList.add('correct');
+     }
+   })
+   if(selectEn !== rightEn){
+     dom.classList.add('wrong');
+   }else{
+     const rec = data.wordRecords[rightEn];
+     rec.reviewCount++;
+     if(rec.reviewCount >=4){
+       rec.status = 'mastered';
+      rec.nextReview = Date.now() + 30*86400000;
+     }else{
+       rec.nextReview = Date.now() + rec.reviewCount * 2 * 86400000;
+     }
+     saveData();
+   }
+   setTimeout(()=>{
+     reviewIndex++;
+     renderReviewCard();
+   },1200);
+ }
+ function shuffleArr(arr){
+   let a = [...arr];
+   for(let i=a.length-1;i>0;i--){
+     let j = Math.floor(Math.random()*(i+1));
+     [a[i],a[j]] = [a[j],a[i]];
+   }
+   return a;
+ }
+ //打卡
+ function checkIn(){
+   const today = todayStr();
+   if(data.checkin[today]){
+     showToast('今日已经打卡过啦！');
+     return;
+   }
+   if(data.todayLearned.length < data.dailyGoal){
+     showModal('⚠️','学习量不足',`今日只学了${data.todayLearned.length}/${data.dailyGoal}个单词，确定打卡吗？`,'确定打卡',()=>doCheckin(),true);
+     return;
+   }
+   doCheckin();
+  }
+ function doCheckin(){
+   const today = todayStr();
+   data.checkin[today] = true;
+   const lastDate = data.lastCheckinDate;
+   if(lastDate){
+     const last = new Date(lastDate);
+     const now = new Date(today);
+     const dayDiff = Math.round((now-last)/86400000);
+     if(dayDiff === 1){
+       data.streak++;
+     }else if(dayDiff > 1){
+       data.streak = 1;
+     }
+   }else{
+     data.streak = 1;
+   }
+   data.lastCheckinDate = today;
+   saveData();
+   showModal('🎉','打卡成功！','继续坚持！','太棒啦',()=>renderHome());
+ }
+ //日历
+ let calendarYear = new Date().getFullYear();
+ let calendarMonth = new Date().getMonth();
+ function renderCalendar(){
+  const box = document.getElementById('calendarBox');
+   const firstDay = new Date(calendarYear,calendarMonth,1);
+   const lastDay = new Date(calendarYear,calendarMonth+1,0);
+   let html = `
+     <div class="calendar-header">
+       <button class="cal-nav-btn" onclick="prevMonth()">◀</button>
+       <h3>${calendarYear}年${calendarMonth+1}月</h3>
+       <button class="cal-nav-btn" onclick="nextMonth()">▶</button>
+     </div>
+     <div class="calendar-grid">
+       <div class="cal-weekday">一</div>
+       <div class="cal-weekday">二</div>
+       <div class="cal-weekday">三</div>
+       <div class="cal-weekday">四</div>
+       <div class="cal-weekday">五</div>
+       <div class="cal-weekday">六</div>
+       <div class="cal-weekday">日</div>
+   `;
+   let startWeek = firstDay.getDay();
+   if(startWeek === 0) startWeek =7;
+   for(let i=1;i<startWeek;i++){
+     html += `<div class="cal-day empty"></div>`;
+   }
+   const today = todayStr();
+   for(let d=1;d<=lastDay.getDate();d++){
+     const dateStr = `${calendarYear}-${String(calendarMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+     let cls = 'cal-day';
+     if(dateStr === today) cls += ' today';
+     if(data.checkin[dateStr]) cls += ' checked';
+    html += `<div class="${cls}">${d}</div>`;
+   }
+   html += `</div>`;
+   box.innerHTML = html;
+   document.getElementById('currentStreak').textContent = data.streak;
+   const totalCheckDays = Object.keys(data.checkin).length;
+   document.getElementById('totalDays').textContent = totalCheckDays;
+   const learnedWords = Object.keys(data.wordRecords).length;
+   document.getElementById('totalWords').textContent = learnedWords;
+ }
+ function prevMonth(){
+   calendarMonth--;
+   if(calendarMonth<0){
+     calendarMonth =11;
+     calendarYear--;
+   }
+   renderCalendar();
+ }
+ function nextMonth(){
+   calendarMonth++;
+   if(calendarMonth>11){
+     calendarMonth=0;
+     calendarYear++;
+   }
+   renderCalendar();
+ }
+ //设置页面
+ function renderPlan(){
+   const slider = document.getElementById('dailyGoalSlider');
+   slider.value = data.dailyGoal;
+  document.getElementById('dailyGoalDisplay').textContent = data.dailyGoal;
+   slider.oninput = function(){
+     data.dailyGoal = Number(this.value);
+     document.getElementById('dailyGoalDisplay').textContent = data.dailyGoal;
+     saveData();
+   }
+   const catWrap = document.getElementById('categorySelect');
+   let catHtml = '';
+   CATEGORIES.forEach(c=>{
+     const selected = data.selectedCats.includes(c.key) ? 'selected' : '';
+     catHtml += `
+     <div class="category-card ${selected}" onclick="toggleCat('${c.key}',this)">
+       <div class="category-emoji">${c.emoji}</div>
+       <div class="category-name">${c.name}</div>
+     </div>`;
+   })
+   catWrap.innerHTML = catHtml;
+   const learned = Object.keys(data.wordRecords).length;
+   const mastered = Object.values(data.wordRecords).filter(r=>r.status==='mastered').length;
+  document.getElementById('statLearned').textContent = learned;
+   document.getElementById('statMastered').textContent = mastered;
+   document.getElementById('statTotal').textContent = WORDS.length;
+   const remain = WORDS.length-learned;
+   const dayEst = Math.ceil(remain / data.dailyGoal);
+   document.getElementById('statEstimate').textContent = dayEst+'天';
+ }
+ function toggleCat(key,dom){
+   const idx = data.selectedCats.indexOf(key);
+   if(idx>-1){
+     data.selectedCats.splice(idx,1);
+     dom.classList.remove('selected');
+   }else{
+     data.selectedCats.push(key);
+     dom.classList.add('selected');
+   }
+   saveData();
+ }
+ function resetData(){
+   showModal('⚠️','确认重置','所有学习记录、打卡记录全部清空，无法恢复！','确认清空',()=>{
+     data = getDefaultData();
+     saveData();
+     showToast('数据已重置');
+     renderPlan();
+     renderHome();
+   },true);
+   }}
+ //词库页面
+ let libraryCat = 'all';
+ function renderLibrary(){
+   const tabWrap = document.getElementById('libraryTabs');
+   let tabHtml = `<button class="library-tab ${libraryCat==='all'?'active':''}" onclick="setLibraryFilter('all')">全部</button>`;
+   CATEGORIES.forEach(c=>{
+     tabHtml += `<button class="library-tab ${libraryCat===c.key?'active':''}" onclick="setLibraryFilter('${c.key}')">${c.emoji} ${c.name}</button>`;
+   })
+   tabWrap.innerHTML = tabHtml;
+   let listWords = libraryCat === 'all' ? WORDS : WORDS.filter(w=>w.cat===libraryCat);
+   const grid = document.getElementById('libraryGrid');
+   let gridHtml = '';
+   listWords.forEach(word=>{
+    const rec = data.wordRecords[word.en];
+     let statusText,statusCls;
+     if(!rec){statusText='未学';statusCls='new';}
+     else if(rec.status==='mastered'){statusText='✓已掌握';statusCls='mastered';}
+     else{statusText='学习中';statusCls='learning';}
+     gridHtml += `
+     <div class="library-item" onclick="speak('${word.en}',null)">
+       <div class="emoji">${word.emoji}</div>
+       <div class="en">${word.en}</div>
+       <div class="cn">${word.cn}</div>
+       <div class="status ${statusCls}">${statusText}</div>
+     </div>`;
+   })
+   grid.innerHTML = gridHtml;
+ }
+ function setLibraryFilter(cat){
+   libraryCat = cat;
+   renderLibrary();
+ }
+ //通用提示
+ function showToast(msg){
+   const t = document.getElementById('toast');
+   t.textContent = msg;
+   t.classList.add('show');
+   setTimeout(()=>t.classList.remove('show'),2000);
+ }}
+ function showModal(emoji,title,msg,okText,okCallback,needCancel){
+   const overlay = document.getElementById('modalOverlay');
+   const content = document.getElementById('modalContent');
+   let html = `
+     <div class="emoji-big">${emoji}</div>
+     <h3>${title}</h3>
+     <p>${msg}</p>
+     <button class="modal-btn" id="modalOkBtn">${okText}</button>
+   `;
+   if(needCancel){
+     html += `<button class="modal-btn" style="background:#cccccc;margin-top:10px" id="modalCancelBtn">取消</button>`;
+   }
+   content.innerHTML = html;
+   overlay.classList.add('show');
+   document.getElementById('modalOkBtn').onclick = ()=>{
+     overlay.classList.remove('show');
+     if(okCallback) okCallback();
+   }
+   if(needCancel){
+    document.getElementById('modalCancelBtn').onclick = ()=>overlay.classList.remove('show');
+   }
+ }
+ function createStar(){
+   const stars = ['⭐','🌟','✨','🎉','💫'];
+   const s = document.createElement('div');
+   s.className = 'star-burst';
+   s.textContent = stars[Math.floor(Math.random()*stars.length)];
+   s.style.left = (Math.random()*70+15)+'%';
+   s.style.top = (Math.random()*40+20)+'%';
+   document.body.appendChild(s);
+   setTimeout(()=>s.remove(),1000);
+ }
+ //初始化启动
+ loadData();
+ checkDailyReset();
+ renderHome();
+ </script>
  </body>
  </html>
+ 
